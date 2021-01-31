@@ -4,11 +4,5 @@ version = "0.1.0"
 authors = ["Ramon van Sprundel <ramonvansprundel@gmail.com>"]
 edition = "2018"
 
-# when running cargo build
-[profile.dev]
-panic = "abort" # disables stack unwinding
-
-# when running cargo build --release
-[profile.release]
-panic = "abort" # disables stack unwinding
-
+[dependencies]
+bootloader = "0.9.8"
