@@ -17,7 +17,17 @@ pub mod gdt;
 pub fn init() {
     gdt::init();
     interrupts::init_idt();
+    unsafe { interrupts::PICS.lock().initialize(); } // initialize PIC
+    x86_64::instructions::interrupts::enable(); // cpu should listen for interrupts
 }
+
+// this will be used as an energy-efficient loop, since you don't want to run empty loops.
+pub fn hlt_loop() -> ! {
+    loop {
+        x86_64::instructions::hlt();
+    }
+}
+
 
 pub trait Testable {
     fn run(&self) -> ();
@@ -41,13 +51,6 @@ pub fn test_runner(tests: &[&dyn Testable]) {
     exit_qemu(QemuExitCode::Success)
 }
 
-pub fn test_panic_handler(info: &PanicInfo) -> ! {
-    serial_println!("[failed]\n");
-    serial_println!("Error: {}\n", info);
-    exit_qemu(QemuExitCode::Failed);
-    loop {}
-}
-
 // panic for tests should display in console, not on screen
 #[cfg(test)]
 #[panic_handler]
@@ -63,6 +66,15 @@ pub enum QemuExitCode {
     Failed = 0x11,
 }
 
+// for tests we need a _start function, because every file gets tested independently
+#[cfg(test)]
+#[no_mangle]
+pub extern "C" fn _start() -> ! {
+    init();
+    test_main();
+    hlt_loop();
+}
+
 pub fn exit_qemu(exit_code: QemuExitCode) {
     use x86_64::instructions::port::Port;
 
@@ -72,13 +84,11 @@ pub fn exit_qemu(exit_code: QemuExitCode) {
     }
 }
 
-// for tests we need a _start function, because every file gets tested independently
-#[cfg(test)]
-#[no_mangle]
-pub extern "C" fn _start() -> ! {
-    init();
-    test_main();
-    loop {}
+pub fn test_panic_handler(info: &PanicInfo) -> ! {
+    serial_println!("[failed]\n");
+    serial_println!("Error: {}\n", info);
+    exit_qemu(QemuExitCode::Failed);
+    hlt_loop();
 }
 
 #[test_case]
@@ -86,3 +96,5 @@ fn test_breakpoint_exception() {
     // invoke a breakpoint exception
     x86_64::instructions::interrupts::int3();
 }
+
+

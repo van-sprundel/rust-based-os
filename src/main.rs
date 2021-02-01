@@ -20,7 +20,7 @@ pub extern "C" fn _start() -> ! {
     test_main(); // execute test when in test mode
 
     println!("It did not crash!");
-    loop {}
+    rust_os::hlt_loop();
 }
 
 // this will be our panic handler
@@ -28,7 +28,7 @@ pub extern "C" fn _start() -> ! {
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
     println!("{}", info);
-    loop {}
+    rust_os::hlt_loop();
 }
 
 // panic for tests should display in console, not on screen

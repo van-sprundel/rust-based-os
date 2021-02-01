@@ -141,7 +141,12 @@ macro_rules! println {
 #[doc(hidden)]
 pub fn _print(args: fmt::Arguments) {
     use core::fmt::Write;
-    WRITER.lock().write_fmt(args).unwrap();
+    use x86_64::instructions::interrupts;
+
+    // we use a closure because we need to capture the value when it is locked, so it can't be interrupted
+    interrupts::without_interrupts(|| {
+        WRITER.lock().write_fmt(args).unwrap();
+    });
 }
 
 #[test_case]
@@ -158,10 +163,18 @@ fn test_println_many() {
 
 #[test_case]
 fn test_println_output() {
+    use core::fmt::Write;
+    use x86_64::instructions::interrupts;
+
     let s = "Some string that fits on one line";
-    println!("{}", s);
-    for (i, c) in s.chars().enumerate() { // enumerate counts the characters in variable i
-        let screen_char = WRITER.lock().buffer.chars[BUFFER_HEIGHT - 2][i].read(); // - 2 because it should go to a new line
-        assert_eq!(char::from(screen_char.ascii_character), c);
-    }
+    interrupts::without_interrupts(|| {
+        // we need to lock the writer during the entire test, normally you'd only lock it while writing, but a deadlock prevention
+        // keeps writing dots between the characters.
+        let mut writer = WRITER.lock();
+        writeln!(writer, "\n{}", s).expect("writeln failed");
+        for (i, c) in s.chars().enumerate() { // enumerate counts the characters in variable i
+            let screen_char = writer.buffer.chars[BUFFER_HEIGHT - 2][i].read(); // - 2 because it should go to a new line
+            assert_eq!(char::from(screen_char.ascii_character), c);
+        }
+    });
 }

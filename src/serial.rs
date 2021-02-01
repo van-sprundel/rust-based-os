@@ -15,7 +15,11 @@ lazy_static! {
 #[doc(hidden)]
 pub fn _print(args: ::core::fmt::Arguments) {
     use core::fmt::Write;
-    SERIAL1.lock().write_fmt(args).expect("Printing to serial failed") // the expect is the panic catch
+    use x86_64::instructions::interrupts;
+    // we use a closure because we need to capture the value when it is locked, so it can't be interrupted
+    interrupts::without_interrupts(|| {
+        SERIAL1.lock().write_fmt(args).expect("Printing to serial failed") // the expect is the panic catch
+    });
 }
 
 // i honestly have no idea how these macros work
