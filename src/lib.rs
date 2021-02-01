@@ -1,4 +1,5 @@
 #![cfg_attr(test, no_main)]
+#![feature(abi_x86_interrupt)]
 #![feature(custom_test_frameworks)]
 #![test_runner(crate::test_runner)]
 #![reexport_test_harness_main = "test_main"]
@@ -8,6 +9,11 @@ use core::panic::PanicInfo;
 
 pub mod serial;
 pub mod vga_buffer;
+pub mod interrupts;
+
+pub fn init() {
+    interrupts::init_idt();
+}
 
 pub trait Testable {
     fn run(&self) -> ();
@@ -15,13 +21,13 @@ pub trait Testable {
 
 impl<T> Testable for T
     where T: Fn(), // Fn is a slice of trait object for function-like trait, we should only use these kinds
-    {
-        fn run(&self) {
-            serial_print!("{}...\t", core::any::type_name::<T>());
-            self();
-            serial_println!("[ok]");
-        }
+{
+    fn run(&self) {
+        serial_print!("{}...\t", core::any::type_name::<T>());
+        self();
+        serial_println!("[ok]");
     }
+}
 
 pub fn test_runner(tests: &[&dyn Testable]) {
     serial_println!("Running {} tests", tests.len());
@@ -35,13 +41,6 @@ pub fn test_panic_handler(info: &PanicInfo) -> ! {
     serial_println!("[failed]\n");
     serial_println!("Error: {}\n", info);
     exit_qemu(QemuExitCode::Failed);
-    loop {}
-}
-
-#[cfg(test)]
-#[no_mangle]
-pub extern "C" fn _start() -> ! {
-    test_main();
     loop {}
 }
 
@@ -67,4 +66,19 @@ pub fn exit_qemu(exit_code: QemuExitCode) {
         let mut port = Port::new(0xf4); // 0xf4 is the iobase of the exit device in Qemu
         port.write(exit_code as u32); // we set this as u32 because we set the iosize in Cargo.toml
     }
+}
+
+// for tests we need a _start function, because every file gets tested independently
+#[cfg(test)]
+#[no_mangle]
+pub extern "C" fn _start() -> ! {
+    init();
+    test_main();
+    loop {}
+}
+
+#[test_case]
+fn test_breakpoint_exception() {
+    // invoke a breakpoint exception
+    x86_64::instructions::interrupts::int3();
 }

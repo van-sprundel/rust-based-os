@@ -17,6 +17,7 @@ pub extern "C" fn _start() -> ! {
     #[cfg(test)]
     test_main(); // execute test when in test mode
 
+    println!("It did not crash!");
     loop {}
 }
 
