@@ -5,13 +5,14 @@ authors = ["Ramon van Sprundel <ramonvansprundel@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-bootloader = "0.9.8"
+bootloader = { version = "0.9.3", features = ["map_physical_memory"]}
 volatile = "0.2.6" # future versions no longer work
 spin = "0.5.2"
 x86_64 = "0.12.1"
 uart_16550 = "0.2.0"
 pic8259_simple = "0.2.0"
 pc-keyboard = "0.5.0"
+
 
 [dependencies.lazy_static]
 version = "1.0"

@@ -1,8 +1,8 @@
 // see https://wiki.osdev.org/Exceptions
 // we need interrupts in case bad commands gets run
 // e.g. writing to a read-only area
-use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame};
-use crate::{print, println};
+use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame, PageFaultErrorCode};
+use crate::{print, println, hlt_loop};
 use lazy_static::lazy_static;
 use crate::gdt;
 use pic8259_simple::ChainedPics;
@@ -41,9 +41,10 @@ lazy_static! {
     static ref IDT: InterruptDescriptorTable = {
         let mut idt = InterruptDescriptorTable::new();
         idt.breakpoint.set_handler_fn(breakpoint_handler); // breakpoint handler, like an IDEs debug mode
+        idt.page_fault.set_handler_fn(page_fault_handler); // page handlers are a way to secure memory, so apps can't override each other
         unsafe {
             idt.double_fault.set_handler_fn(double_fault_handler) // similar to a catch statement e.g. writing to invalid access
-            .set_stack_index(gdt::DOUBLE_FAULT_IST_INDEX);
+                .set_stack_index(gdt::DOUBLE_FAULT_IST_INDEX);
         }
         idt[InterruptIndex::Timer.as_usize()]
             .set_handler_fn(timer_interrupt_handler);
@@ -72,6 +73,20 @@ extern "x86-interrupt" fn timer_interrupt_handler(
             .notify_end_of_interrupt(InterruptIndex::Timer.as_u8()); // checks which of the two PICs sent the interrupt and handles it accordingly
     }
 }
+
+extern "x86-interrupt" fn page_fault_handler(
+    _stack_frame: &mut InterruptStackFrame,
+    error_code: PageFaultErrorCode)
+{
+    use x86_64::registers::control::Cr2; // the CPUs default register for page faults is Cr2, see https://en.wikipedia.org/wiki/Control_register#CR2
+
+    println!("EXCEPTION PAGE FAULT");
+    println!("Accessed Address: {:?}", Cr2::read());
+    println!("Error code: {:?}", error_code); // contains a lot of the info that's useful for debugging
+    println!("{:#?}", _stack_frame);
+    hlt_loop(); // we can't continue execution without a page fault being resolved, hence we halt the loop
+}
+
 
 extern "x86-interrupt" fn double_fault_handler(
     stack_frame: &mut InterruptStackFrame, _error_code: u64) -> !

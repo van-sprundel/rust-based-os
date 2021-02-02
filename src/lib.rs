@@ -8,6 +8,7 @@
 use core::panic::PanicInfo;
 
 pub mod serial;
+pub mod memory;
 pub mod vga_buffer;
 
 // exception handlers
@@ -28,6 +29,20 @@ pub fn hlt_loop() -> ! {
     }
 }
 
+#[cfg(test)]
+use bootloader::{entry_point, BootInfo};
+
+#[cfg(test)]
+entry_point!(test_kernel_main);
+
+// for tests we need a _start function, because every file gets tested independently
+/// Entry point for `cargo test`
+#[cfg(test)]
+fn test_kernel_main(_boot_info: &'static BootInfo) -> ! {
+    init();
+    test_main();
+    hlt_loop();
+}
 
 pub trait Testable {
     fn run(&self) -> ();
@@ -64,15 +79,6 @@ fn panic(_info: &PanicInfo) -> ! {
 pub enum QemuExitCode {
     Success = 0x10,
     Failed = 0x11,
-}
-
-// for tests we need a _start function, because every file gets tested independently
-#[cfg(test)]
-#[no_mangle]
-pub extern "C" fn _start() -> ! {
-    init();
-    test_main();
-    hlt_loop();
 }
 
 pub fn exit_qemu(exit_code: QemuExitCode) {
