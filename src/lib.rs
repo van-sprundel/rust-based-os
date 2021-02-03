@@ -4,12 +4,21 @@
 #![test_runner(crate::test_runner)]
 #![reexport_test_harness_main = "test_main"]
 #![no_std]
+#![feature(alloc_error_handler)]
 
 use core::panic::PanicInfo;
 
+extern crate alloc;
+
+// most of these handler are just to return errors to prevent vulnerabilities
+// i guess that's the point of a handler...
 pub mod serial;
+// serial handler
 pub mod memory;
+// memory handler
 pub mod vga_buffer;
+// buffer that writes to screen
+pub mod allocator; // allocate handler
 
 // exception handlers
 pub mod interrupts;
@@ -27,6 +36,11 @@ pub fn hlt_loop() -> ! {
     loop {
         x86_64::instructions::hlt();
     }
+}
+
+#[alloc_error_handler]
+fn alloc_error_handler(layout: alloc::alloc::Layout) -> ! {
+    panic!("allocation error: {:?}", layout)
 }
 
 #[cfg(test)]
