@@ -8,8 +8,9 @@ use core::panic::PanicInfo;
 
 use rust_os::println;
 use bootloader::{BootInfo, entry_point};
-use rust_os::memory::BootInfoFrameAllocator;
+
 extern crate alloc;
+
 use alloc::{boxed::Box, vec, vec::Vec, rc::Rc};
 
 entry_point!(kernel_main);
@@ -18,10 +19,8 @@ entry_point!(kernel_main);
 fn kernel_main(boot_info: &'static BootInfo) -> ! {
     use rust_os::allocator; // new import
     use rust_os::memory::{self, BootInfoFrameAllocator};
-    use x86_64::{
-        structures::paging::Page,
-        VirtAddr,
-    };
+    use x86_64::VirtAddr;
+
 
     println!("Hello World{}", "!");
     rust_os::init();
