@@ -109,7 +109,7 @@ extern "x86-interrupt" fn keyboard_interrupt_handler(
     }
 
     let mut keyboard = KEYBOARD.lock();
-    let mut port = Port::new(0x60);
+    let mut port = Port::new(0x60); // the cpu writes the keyboard input to port 0x60, see https://wiki.osdev.org/%228042%22_PS/2_Controller#PS.2F2_Controller_IO_Ports
 
     let scancode: u8 = unsafe { port.read() };
     if let Ok(Some(key_event)) = keyboard.add_byte(scancode) {
