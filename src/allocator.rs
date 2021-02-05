@@ -1,6 +1,13 @@
-use linked_list_allocator::LockedHeap;
+use fixed_size_block::FixedSizeBlockAllocator;
 
-pub const HEAP_START: usize = 0x_4444_4444_0000; // simple start address
+pub mod bump;
+// bump allocator
+pub mod linked_list;
+// linked list allocator
+pub mod fixed_size_block; // fixed size block using the linked list allocator
+
+pub const HEAP_START: usize = 0x_4444_4444_0000;
+// simple start address
 pub const HEAP_SIZE: usize = 100 * 1024; // 100KiB
 
 use x86_64::{
@@ -42,5 +49,31 @@ pub fn init_heap(
 }
 
 #[global_allocator]
-static ALLOCATOR: LockedHeap = LockedHeap::empty(); //LockedHeap uses the SpinLock to sync, something we already use for Mutex
+static ALLOCATOR: Locked<FixedSizeBlockAllocator> = Locked::new(
+    FixedSizeBlockAllocator::new());//LockedHeap uses the SpinLock to sync, something we already use for Mutex
 
+
+pub struct Locked<A> {
+    inner: spin::Mutex<A>,
+}
+
+impl<A> Locked<A> {
+    pub const fn new(inner: A) -> Self {
+        Locked {
+            inner: spin::Mutex::new(inner),
+        }
+    }
+
+    pub fn lock(&self) -> spin::MutexGuard<A> {
+        self.inner.lock()
+    }
+}
+
+fn align_up(addr: usize, align: usize) -> usize {
+    let remainder = addr % align;
+    if remainder == 0 {
+        addr // addr already aligned
+    } else {
+        addr - remainder + align
+    }
+}
