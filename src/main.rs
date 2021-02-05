@@ -17,7 +17,7 @@ entry_point!(kernel_main);
 
 /// Our kernel entry point
 fn kernel_main(boot_info: &'static BootInfo) -> ! {
-    use rust_os::allocator; // new import
+    use rust_os::allocator;
     use rust_os::memory::{self, BootInfoFrameAllocator};
     use x86_64::VirtAddr;
 
