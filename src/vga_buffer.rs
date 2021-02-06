@@ -44,6 +44,7 @@ impl Writer {
                 // printable byte (32-126)
                 0x20..=0x7e | b'\n' => self.write_byte(byte),
                 // non-printable byte
+                0x08 => self.remove_byte(), // BackSpace
                 _ => self.write_byte(0xfe) // ■
             }
         }
@@ -84,6 +85,18 @@ impl Writer {
         };
         for col in 0..BUFFER_WIDTH {
             self.buffer.chars[row][col].write(blank)
+        }
+    }
+    pub fn remove_byte(&mut self) {
+        if self.column_position > 0 {
+            let row = BUFFER_HEIGHT - 1;
+            let col = self.column_position;
+
+            self.buffer.chars[row][col-1].write(ScreenChar {
+                ascii_character: 0,
+                color_code: ColorCode::new(Color::Black,Color::Black),
+            });
+            self.column_position -= 1; // advance position
         }
     }
 }
