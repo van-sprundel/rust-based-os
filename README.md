@@ -15,7 +15,7 @@ To set up your environment, run the following commands:
 
 ```commandline
 rustup override set nightly
-rustup component add rust-srcrustup component add rust-src
+rustup component add rust-src
 cargo install bootimage
 rustup component add llvm-tools-preview
 ```
