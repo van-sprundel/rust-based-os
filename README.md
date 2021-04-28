@@ -2,6 +2,8 @@
 
 A rust based Operating System.
 
+Big credits to Phill Opperman's blog: https://os.phil-opp.com/
+
 ## Installation
 
 Requirements:
